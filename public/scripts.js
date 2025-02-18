@@ -24,7 +24,7 @@ function updateTaxiLocation(taxiId, lat, lng) {
 
 // Obtiene las ubicaciones de los taxis desde el servidor
 function fetchTaxiLocations() {
-    fetch("http://localhost:3000/get-taxi-locations") // Asegúrate de que la URL es correcta
+    fetch("https://flota-cfj7.onrender.com/get-taxi-locations") // URL correcta para producción
         .then(response => response.json())
         .then(data => {
             data.forEach(taxi => {
