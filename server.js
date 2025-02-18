@@ -41,7 +41,8 @@ app.get('/get-taxi-locations', (req, res) => {
 });
 
 // Iniciar el servidor en el puerto dinámico proporcionado por Render
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
+
   console.log(`Servidor escuchando en http://localhost:${port}`);
 });
 
