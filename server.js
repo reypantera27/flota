@@ -39,6 +39,7 @@ app.get('/get-taxi-locations', (req, res) => {
 });
 
 // Iniciar el servidor en el puerto 3000
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
 });
+

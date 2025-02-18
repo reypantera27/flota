@@ -1,13 +1,13 @@
 {
   "name": "flota",
   "version": "1.0.0",
-  "description": "",
+  "description": "Aplicación de seguimiento de taxis en tiempo real",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "heroku-postbuild": "npm install"
   },
-  "keywords": [],
+  "keywords": ["taxi", "seguimiento", "tiempo real"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -15,5 +15,8 @@
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "express": "^4.21.2"
+  },
+  "engines": {
+    "node": "v22.14.0"
   }
 }
