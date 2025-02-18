@@ -2,7 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
-const port = 3000;
+
+// Usa el puerto proporcionado por Render o un puerto predeterminado
+const port = process.env.PORT || 3000;
 
 app.use(cors()); // Habilitar CORS para acceder desde el navegador
 
@@ -38,8 +40,8 @@ app.get('/get-taxi-locations', (req, res) => {
   res.json(taxiLocations); // Devolver las ubicaciones actuales de todos los taxis
 });
 
-// Iniciar el servidor en el puerto 3000
-app.listen(port, '0.0.0.0', () => {
+// Iniciar el servidor en el puerto dinámico proporcionado por Render
+app.listen(port, () => {
   console.log(`Servidor escuchando en http://localhost:${port}`);
 });
 
