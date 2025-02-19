@@ -10,7 +10,7 @@ function initMap() {
 }
 
 // Actualiza o crea un marcador para cada taxi en el mapa
-function updateTaxiLocation(taxiId, lat, lng) {
+function updateTaxiLocation(taxiId, lat, lng, lastUpdated) {
     if (taxiMarkers[taxiId]) {
         taxiMarkers[taxiId].setPosition(new google.maps.LatLng(lat, lng)); // Actualiza la posición
     } else {
@@ -20,6 +20,13 @@ function updateTaxiLocation(taxiId, lat, lng) {
             title: `Taxi ${taxiId}`
         });
     }
+
+    // Actualizar la información de la última actualización en el marcador
+    taxiMarkers[taxiId].setLabel({
+        text: `Última actualización: ${lastUpdated}`,
+        fontSize: "10px",
+        color: "#000000"
+    });
 }
 
 // Obtiene las ubicaciones de los taxis desde el servidor
@@ -28,7 +35,7 @@ function fetchTaxiLocations() {
         .then(response => response.json())
         .then(data => {
             data.forEach(taxi => {
-                updateTaxiLocation(taxi.id, taxi.lat, taxi.lng);
+                updateTaxiLocation(taxi.id, taxi.lat, taxi.lng, taxi.lastUpdated);
             });
         })
         .catch(error => console.error("Error obteniendo ubicaciones:", error));
