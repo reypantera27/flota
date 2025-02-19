@@ -3,9 +3,6 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Clave de administrador (podés cambiarla por un sistema más seguro)
-const ADMIN_KEY = "tiziprat"; 
-
 app.use(cors());
 app.use(express.json());
 
@@ -26,14 +23,8 @@ app.post('/update-taxi-location', (req, res) => {
     res.json({ message: 'Ubicación actualizada correctamente' });
 });
 
-// Ruta para que el ADMINISTRADOR vea todas las ubicaciones
+// Ruta para obtener todas las ubicaciones de los taxis
 app.get('/get-taxi-locations', (req, res) => {
-    const adminKey = req.headers['admin-key'];
-
-    if (adminKey !== ADMIN_KEY) {
-        return res.status(403).json({ error: 'Acceso no autorizado' });
-    }
-
     const locationsArray = Object.entries(taxiLocations).map(([id, location]) => ({
         id,
         ...location
