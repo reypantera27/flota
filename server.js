@@ -1,52 +1,38 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Usa el puerto proporcionado por Render o un puerto predeterminado
-const port = process.env.PORT || 3000;
+app.use(cors());
+app.use(express.json());
 
-app.use(cors()); // Habilitar CORS para acceder desde el navegador
+// Almacenar ubicaciones en memoria
+const taxiLocations = {};
 
-// Middleware para analizar el cuerpo de las solicitudes en formato JSON
-app.use(bodyParser.json());
-
-// Servir archivos estáticos desde la carpeta 'public'
-app.use(express.static('public'));
-
-// Almacén de ubicaciones de taxis (se actualizará dinámicamente)
-let taxiLocations = []; // Empezamos con un array vacío
-
-// Ruta para recibir la ubicación de los taxis
+// Guardar la última actualización de cada taxi
 app.post('/update-taxi-location', (req, res) => {
-  const { taxiId, lat, lng } = req.body;
+    const { taxiId, lat, lng } = req.body;
 
-  // Si no recibimos una ubicación válida, respondemos con error
-  if (!lat || !lng) {
-    return res.status(400).send("Ubicación inválida");
-  }
+    if (!taxiId || lat == null || lng == null) {
+        return res.status(400).json({ error: 'Datos incompletos' });
+    }
 
-  // Buscamos si el taxi ya tiene ubicación guardada
-  const taxiIndex = taxiLocations.findIndex(t => t.id === taxiId);
+    taxiLocations[taxiId] = { lat, lng };
 
-  if (taxiIndex === -1) {
-    // Si el taxi no existe, agregamos la nueva ubicación
-    taxiLocations.push({ id: taxiId, lat, lng });
-  } else {
-    // Si ya existe, actualizamos las coordenadas
-    taxiLocations[taxiIndex] = { id: taxiId, lat, lng };
-  }
-
-  res.status(200).send("Ubicación actualizada");
+    console.log(`Taxi ${taxiId} actualizado: (${lat}, ${lng})`);
+    res.json({ message: 'Ubicación actualizada correctamente' });
 });
 
-// Ruta para obtener las ubicaciones de los taxis
+// Devolver todas las ubicaciones de taxis
 app.get('/get-taxi-locations', (req, res) => {
-  res.json(taxiLocations); // Devolver las ubicaciones actuales de todos los taxis
+    const locationsArray = Object.entries(taxiLocations).map(([id, location]) => ({
+        id,
+        ...location
+    }));
+    res.json(locationsArray);
 });
 
-// Iniciar el servidor en el puerto dinámico proporcionado por Render
-app.listen(port, '0.0.0.0', () => {
-  console.log(`Servidor escuchando en http://localhost:${port}`);
+// Iniciar el servidor
+app.listen(PORT, () => {
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
-
