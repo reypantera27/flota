@@ -1,48 +1,152 @@
 let map;
-let taxiMarkers = {}; // Guardará los marcadores de los taxis
+let userPosition = null;
+let userId = null;
+let markers = {}; 
+let isAdmin = false; 
+let routePaths = {}; // Almacena las rutas de cada chofer
 
-// Inicializa el mapa en la app del servidor
-function initMap() {
-    map = new google.maps.Map(document.getElementById("map"), {
-        center: { lat: -31.6300, lng: -60.7000 }, // Santa Fe, Argentina
-        zoom: 12
-    });
-}
-
-// Actualiza o crea un marcador para cada taxi en el mapa
-function updateTaxiLocation(taxiId, lat, lng, lastUpdated) {
-    if (taxiMarkers[taxiId]) {
-        taxiMarkers[taxiId].setPosition(new google.maps.LatLng(lat, lng)); // Actualiza la posición
-    } else {
-        taxiMarkers[taxiId] = new google.maps.Marker({
-            position: { lat, lng },
-            map,
-            title: `Taxi ${taxiId}`
-        });
+// Pedir el nombre del usuario o si es administrador
+function askUserId() {
+    const input = prompt("Ingrese su nombre (o 'admin' si es administrador):");
+    
+    if (!input) {
+        alert("Debe ingresar un nombre.");
+        return askUserId();
     }
 
-    // Actualizar la información de la última actualización en el marcador
-    taxiMarkers[taxiId].setLabel({
-        text: `Última actualización: ${lastUpdated}`,
-        fontSize: "10px",
-        color: "#000000"
+    userId = input.trim().toLowerCase();
+    isAdmin = (userId === "admin");
+
+    if (!isAdmin) {
+        startTracking();
+    }
+
+    initMap();
+}
+
+// Inicializar el mapa
+function initMap() {
+    map = new google.maps.Map(document.getElementById("map"), {
+        center: { lat: -31.6300, lng: -60.7000 },
+        zoom: 12
+    });
+
+    loadTaxiLocations();
+}
+
+// Obtener ubicación del usuario
+function getUserLocation(callback) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+            userPosition = position.coords;
+            callback(userPosition);
+        }, error => {
+            console.error("Error al obtener la ubicación:", error);
+        });
+    }
+}
+
+// Enviar ubicación al servidor
+function sendLocation() {
+    if (!userPosition || !userId) return;
+
+    fetch('https://flota-cfj7.onrender.com/update-taxi-location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            taxiId: userId,
+            lat: userPosition.latitude,
+            lng: userPosition.longitude
+        })
     });
 }
 
-// Obtiene las ubicaciones de los taxis desde el servidor
-function fetchTaxiLocations() {
-    fetch("https://flota-cfj7.onrender.com/get-taxi-locations") // URL correcta para producción
-        .then(response => response.json())
-        .then(data => {
-            data.forEach(taxi => {
-                updateTaxiLocation(taxi.id, taxi.lat, taxi.lng, taxi.lastUpdated);
-            });
-        })
-        .catch(error => console.error("Error obteniendo ubicaciones:", error));
+// Actualizar ubicación cada 10 segundos
+function startTracking() {
+    getUserLocation(position => {
+        sendLocation();
+        setInterval(() => {
+            getUserLocation(sendLocation);
+        }, 10000);
+    });
 }
 
-// Llama a la función cada 10 segundos para actualizar las ubicaciones de los taxis
-setInterval(fetchTaxiLocations, 10000); // Actualiza cada 10 segundos
+// Cargar ubicaciones de los taxis
+function loadTaxiLocations() {
+    fetch('https://flota-cfj7.onrender.com/get-taxi-locations')
+        .then(response => response.json())
+        .then(data => {
+            Object.values(markers).forEach(marker => marker.setMap(null));
+            markers = {};
+            
+            data.forEach(taxi => {
+                if (!isAdmin && taxi.id !== userId) return;
+                
+                const marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(taxi.lat, taxi.lng),
+                    map,
+                    title: `Taxi: ${taxi.id}`
+                });
 
-// Inicializa el mapa cuando el DOM esté completamente cargado
-document.addEventListener('DOMContentLoaded', initMap);
+                markers[taxi.id] = marker;
+            });
+        });
+
+    setTimeout(loadTaxiLocations, 10000);
+}
+
+// Mostrar menú de choferes y sus recorridos
+function showDriverMenu() {
+    fetch('https://flota-cfj7.onrender.com/get-taxi-locations')
+        .then(response => response.json())
+        .then(data => {
+            let menu = document.getElementById("driverMenu");
+            menu.innerHTML = "";
+            
+            data.forEach(taxi => {
+                let button = document.createElement("button");
+                button.innerText = `Taxi ${taxi.id}`;
+                button.onclick = () => showRoute(taxi.id);
+                menu.appendChild(button);
+            });
+
+            menu.style.display = "block";
+        });
+}
+
+// Mostrar la ruta de un chofer
+function showRoute(taxiId) {
+    fetch(`https://flota-cfj7.onrender.com/get-taxi-history/${taxiId}/${getCurrentDate()}`)
+        .then(response => response.json())
+        .then(route => {
+            if (routePaths[taxiId]) {
+                routePaths[taxiId].setMap(null);
+            }
+            
+            const path = new google.maps.Polyline({
+                path: route.map(r => new google.maps.LatLng(r.lat, r.lng)),
+                geodesic: true,
+                strokeColor: "#FF0000",
+                strokeOpacity: 1.0,
+                strokeWeight: 2,
+                map: map
+            });
+
+            routePaths[taxiId] = path;
+        });
+}
+
+// Obtener la fecha actual en formato YYYY-MM-DD
+function getCurrentDate() {
+    const date = new Date();
+    const yyyy = date.getFullYear();
+    let mm = date.getMonth() + 1;
+    let dd = date.getDate();
+
+    if (mm < 10) mm = '0' + mm;
+    if (dd < 10) dd = '0' + dd;
+
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+document.addEventListener("DOMContentLoaded", askUserId);
