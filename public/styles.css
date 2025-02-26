@@ -1,0 +1,78 @@
+/* public/styles.css */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.header {
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 10px 0;
+}
+
+h1 {
+    margin: 0;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo {
+    width: 40px;
+    height: 40px;
+    margin: 0 10px;
+}
+
+.container {
+    padding: 20px;
+    text-align: center;
+}
+
+#map {
+    height: 500px;
+    width: 100%;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+#status {
+    font-size: 16px;
+    color: #e74c3c;
+    margin: 10px 0;
+}
+
+#menuButton {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+#menuButton:hover {
+    background-color: #2980b9;
+}
+
+#driverMenu {
+    margin-top: 20px;
+}
+
+#driverMenu button {
+    display: block;
+    width: 200px;
+    margin: 10px auto;
+    padding: 10px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#driverMenu button:hover {
+    background-color: #219653;
+}

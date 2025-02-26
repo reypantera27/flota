@@ -3,14 +3,17 @@ let userPosition = null;
 let userId = null;
 let markers = {};
 let isAdmin = false;
-let routePaths = {}; // Almacena las rutas de cada chofer
+let routePaths = {};
+let trackingInterval = null;
 
 // Verifica que Google Maps haya cargado antes de inicializar el mapa
-function loadGoogleMaps() {
+function loadGoogleMaps(retries = 5) {
     if (typeof google !== "undefined") {
         initMap();
+    } else if (retries > 0) {
+        setTimeout(() => loadGoogleMaps(retries - 1), 500);
     } else {
-        setTimeout(loadGoogleMaps, 500);
+        document.getElementById("status").textContent = "No se pudo cargar Google Maps.";
     }
 }
 
@@ -30,7 +33,7 @@ function askUserId() {
         startTracking();
     }
 
-    loadGoogleMaps(); // Se asegura de que Google Maps esté disponible antes de inicializarlo
+    loadGoogleMaps();
 }
 
 // Inicializar el mapa
@@ -56,6 +59,7 @@ function getUserLocation(callback) {
             },
             (error) => {
                 console.error("Error al obtener la ubicación:", error);
+                document.getElementById("status").textContent = "Error al obtener tu ubicación.";
             }
         );
     }
@@ -73,14 +77,18 @@ function sendLocation() {
             lat: userPosition.lat,
             lng: userPosition.lng,
         }),
-    }).catch((error) => console.error("Error al enviar ubicación:", error));
+    }).catch((error) => {
+        console.error("Error al enviar ubicación:", error);
+        document.getElementById("status").textContent = "Error al enviar ubicación.";
+    });
 }
 
 // Actualizar ubicación cada 10 segundos
 function startTracking() {
     getUserLocation(() => {
         sendLocation();
-        setInterval(() => {
+        if (trackingInterval) clearInterval(trackingInterval);
+        trackingInterval = setInterval(() => {
             getUserLocation(sendLocation);
         }, 10000);
     });
@@ -88,16 +96,16 @@ function startTracking() {
 
 // Cargar ubicaciones de los taxis
 function loadTaxiLocations() {
+    document.getElementById("status").textContent = "Cargando ubicaciones...";
     fetch("https://flota-cfj7.onrender.com/get-location")
         .then((response) => response.json())
         .then((data) => {
+            document.getElementById("status").textContent = "";
             if (!data || Object.keys(data).length === 0) return;
 
-            // Limpiar marcadores anteriores
             Object.values(markers).forEach((marker) => marker.setMap(null));
             markers = {};
 
-            // Agregar nuevos marcadores
             Object.entries(data).forEach(([taxiId, location]) => {
                 if (!isAdmin && taxiId !== userId) return;
 
@@ -110,7 +118,10 @@ function loadTaxiLocations() {
                 markers[taxiId] = marker;
             });
         })
-        .catch((error) => console.error("Error al cargar ubicaciones:", error));
+        .catch((error) => {
+            console.error("Error al cargar ubicaciones:", error);
+            document.getElementById("status").textContent = "Error al cargar ubicaciones.";
+        });
 
     setTimeout(loadTaxiLocations, 10000);
 }
@@ -163,16 +174,6 @@ function showRoute(taxiId) {
             routePaths[taxiId] = path;
         })
         .catch((error) => console.error("Error al cargar la ruta del taxi:", error));
-}
-
-// Obtener la fecha actual en formato YYYY-MM-DD
-function getCurrentDate() {
-    const date = new Date();
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-
-    return `${yyyy}-${mm}-${dd}`;
 }
 
 document.addEventListener("DOMContentLoaded", askUserId);

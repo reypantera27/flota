@@ -7,16 +7,13 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Estructura para almacenar las ubicaciones de los taxis
-const taxiLocations = {}; // Guarda la última ubicación
-const taxiRoutes = {}; // Guarda el historial de ubicaciones de cada taxi
+const taxiLocations = {};
+const taxiRoutes = {};
 
-// Endpoint para verificar si el servidor está activo
 app.get("/status", (req, res) => {
     res.json({ message: "Servidor funcionando correctamente" });
 });
 
-// Endpoint para actualizar la ubicación del taxi
 app.post("/update-location", (req, res) => {
     const { taxiId, lat, lng } = req.body;
 
@@ -24,30 +21,32 @@ app.post("/update-location", (req, res) => {
         return res.status(400).json({ error: "Faltan datos o son inválidos" });
     }
 
-    // Guardar última ubicación
     taxiLocations[taxiId] = { lat, lng, timestamp: Date.now() };
 
-    // Guardar el historial de ubicaciones
     if (!taxiRoutes[taxiId]) {
         taxiRoutes[taxiId] = [];
     }
     taxiRoutes[taxiId].push({ lat, lng, timestamp: Date.now() });
+    if (taxiRoutes[taxiId].length > 100) {
+        taxiRoutes[taxiId].shift();
+    }
 
     res.status(200).json({ message: "Ubicación guardada", location: taxiLocations[taxiId] });
 });
 
-// Endpoint para obtener la última ubicación de un taxi
 app.get("/get-location", (req, res) => {
     const { taxiId } = req.query;
 
-    if (!taxiId || !taxiLocations[taxiId]) {
-        return res.status(404).json({ error: "No hay datos para este taxi" });
+    if (taxiId) {
+        if (!taxiLocations[taxiId]) {
+            return res.status(404).json({ error: "No hay datos para este taxi" });
+        }
+        return res.status(200).json(taxiLocations[taxiId]);
     }
 
-    res.status(200).json(taxiLocations[taxiId]);
+    res.status(200).json(taxiLocations);
 });
 
-// Endpoint para obtener el recorrido completo del taxi
 app.get("/get-taxi-route", (req, res) => {
     const { taxiId } = req.query;
 
@@ -56,6 +55,11 @@ app.get("/get-taxi-route", (req, res) => {
     }
 
     res.status(200).json({ taxiId, route: taxiRoutes[taxiId] });
+});
+
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({ error: "Algo salió mal en el servidor" });
 });
 
 app.listen(PORT, () => {
