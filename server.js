@@ -6,10 +6,11 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Almacenar ubicaciones en memoria
-const taxiLocations = {};
+// Almacenar ubicaciones de taxis en memoria con historial
+const taxiLocations = {}; // Última ubicación
+const taxiHistory = {}; // Historial de ubicaciones por día
 
-// Guardar la última actualización de cada taxi
+// Guardar la ubicación de un taxi en el historial
 app.post('/update-taxi-location', (req, res) => {
     const { taxiId, lat, lng } = req.body;
 
@@ -17,17 +18,28 @@ app.post('/update-taxi-location', (req, res) => {
         return res.status(400).json({ error: 'Datos incompletos' });
     }
 
-    taxiLocations[taxiId] = {
-        lat,
-        lng,
-        lastUpdated: new Date().toISOString()
-    };
+    const timestamp = new Date().toISOString();
+    const dateKey = timestamp.split('T')[0]; // Guardar por día
 
-    console.log(`🚖 Taxi ${taxiId} actualizado: (${lat}, ${lng}) - Última actualización: ${taxiLocations[taxiId].lastUpdated}`);
+    // Guardar última ubicación
+    taxiLocations[taxiId] = { lat, lng, lastUpdated: timestamp };
+
+    // Inicializar historial si no existe
+    if (!taxiHistory[taxiId]) {
+        taxiHistory[taxiId] = {};
+    }
+    if (!taxiHistory[taxiId][dateKey]) {
+        taxiHistory[taxiId][dateKey] = [];
+    }
+
+    // Agregar la nueva ubicación al historial
+    taxiHistory[taxiId][dateKey].push({ lat, lng, timestamp });
+
+    console.log(`Taxi ${taxiId} actualizado: (${lat}, ${lng}) - Última actualización: ${timestamp}`);
     res.json({ message: 'Ubicación actualizada correctamente' });
 });
 
-// Ruta para obtener todas las ubicaciones de los taxis
+// Obtener la última ubicación de todos los taxis
 app.get('/get-taxi-locations', (req, res) => {
     const locationsArray = Object.entries(taxiLocations).map(([id, location]) => ({
         id,
@@ -38,7 +50,18 @@ app.get('/get-taxi-locations', (req, res) => {
     res.json(locationsArray);
 });
 
+// Obtener el historial de ubicaciones de un taxi en un día específico
+app.get('/get-taxi-history/:taxiId/:date', (req, res) => {
+    const { taxiId, date } = req.params;
+    
+    if (!taxiHistory[taxiId] || !taxiHistory[taxiId][date]) {
+        return res.status(404).json({ error: "No hay historial para este taxi en la fecha indicada." });
+    }
+
+    res.json(taxiHistory[taxiId][date]);
+});
+
 // Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
