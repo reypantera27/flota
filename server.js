@@ -6,7 +6,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Almacenar ubicaciones en memoria (ahora con la última fecha de actualización)
+// Almacenar ubicaciones en memoria
 const taxiLocations = {};
 
 // Guardar la última actualización de cada taxi
@@ -17,29 +17,28 @@ app.post('/update-taxi-location', (req, res) => {
         return res.status(400).json({ error: 'Datos incompletos' });
     }
 
-    // Registrar la ubicación junto con el timestamp
     taxiLocations[taxiId] = {
         lat,
         lng,
-        lastUpdated: new Date().toISOString() // Guardamos la fecha y hora de la última actualización
+        lastUpdated: new Date().toISOString()
     };
 
-    console.log(`Taxi ${taxiId} actualizado: (${lat}, ${lng}) - Última actualización: ${taxiLocations[taxiId].lastUpdated}`);
+    console.log(`🚖 Taxi ${taxiId} actualizado: (${lat}, ${lng}) - Última actualización: ${taxiLocations[taxiId].lastUpdated}`);
     res.json({ message: 'Ubicación actualizada correctamente' });
 });
 
-// Ruta para obtener todas las ubicaciones de los taxis con la última actualización
+// Ruta para obtener todas las ubicaciones de los taxis
 app.get('/get-taxi-locations', (req, res) => {
     const locationsArray = Object.entries(taxiLocations).map(([id, location]) => ({
         id,
         lat: location.lat,
         lng: location.lng,
-        lastUpdated: location.lastUpdated // Agregar la última actualización
+        lastUpdated: location.lastUpdated
     }));
     res.json(locationsArray);
 });
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`✅ Servidor corriendo en http://localhost:${PORT}`);
 });
