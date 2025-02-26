@@ -9,6 +9,7 @@ app.use(express.json());
 
 const taxiLocations = {};
 const taxiRoutes = {};
+const locationRequests = {}; // Nuevo: Almacena solicitudes pendientes
 
 app.get("/status", (req, res) => {
     res.json({ message: "Servidor funcionando correctamente" });
@@ -29,6 +30,11 @@ app.post("/update-location", (req, res) => {
     taxiRoutes[taxiId].push({ lat, lng, timestamp: Date.now() });
     if (taxiRoutes[taxiId].length > 100) {
         taxiRoutes[taxiId].shift();
+    }
+
+    // Limpiar solicitud pendiente si existe
+    if (locationRequests[taxiId]) {
+        delete locationRequests[taxiId];
     }
 
     res.status(200).json({ message: "Ubicación guardada", location: taxiLocations[taxiId] });
@@ -55,6 +61,29 @@ app.get("/get-taxi-route", (req, res) => {
     }
 
     res.status(200).json({ taxiId, route: taxiRoutes[taxiId] });
+});
+
+// Nuevo endpoint: Admin solicita ubicación
+app.post("/request-location", (req, res) => {
+    const { taxiId } = req.body;
+
+    if (!taxiId) {
+        return res.status(400).json({ error: "Falta el taxiId" });
+    }
+
+    locationRequests[taxiId] = true; // Marcar solicitud pendiente
+    res.status(200).json({ message: `Solicitud enviada para ${taxiId}` });
+});
+
+// Nuevo endpoint: Chofer verifica si hay solicitud
+app.get("/check-request", (req, res) => {
+    const { taxiId } = req.query;
+
+    if (!taxiId) {
+        return res.status(400).json({ error: "Falta el taxiId" });
+    }
+
+    res.status(200).json({ requested: !!locationRequests[taxiId] });
 });
 
 app.use((err, req, res, next) => {
